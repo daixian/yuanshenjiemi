@@ -8,6 +8,7 @@
 
 #include <deque>
 
+// 一个方块,其中记录和它联动的方块的index.
 class Cube
 {
   public:
@@ -21,13 +22,16 @@ class Cube
             dir = 0;
         }
     }
+
+    // 和它联动的cube的index
+    std::vector<int> linkCube;
 };
 
 class CubeSystem
 {
   public:
     // 当前的4个方块状态.
-    std::array<Cube, 4> arr;
+    std::vector<Cube> allCube;
 
     // 经历的步骤.
     std::vector<int> vStep;
@@ -38,21 +42,27 @@ class CubeSystem
      */
     void knock(int index)
     {
-        //除了对角线的全部转一下
-        int acrossIndex = (index + 2) % 4; //对角线的方块index
+        // 自身转
+        allCube[index].rotate();
 
-        for (size_t i = 0; i < 4; i++) {
-            if (i != acrossIndex) {
-                arr[i].rotate();
-            }
+        //自身的连接的也转
+        for (size_t i = 0; i < allCube[index].linkCube.size(); i++) {
+            int indexLinkIndex = allCube[index].linkCube[i];
+            allCube[indexLinkIndex].rotate();
         }
+
         vStep.push_back(index);
     }
 
+    /**
+     * @brief 检察这个系统是否已经成功了(面向同一指定方向).
+     * @param targetDir
+     * @return
+     */
     bool checkSuccess(int targetDir)
     {
-        for (size_t i = 0; i < arr.size(); i++) {
-            if (arr[i].dir != targetDir) {
+        for (size_t i = 0; i < allCube.size(); i++) {
+            if (allCube[i].dir != targetDir) {
                 return false;
             }
         }
@@ -62,17 +72,29 @@ class CubeSystem
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    // std::cout << "Hello World!\n";
 
     //用0,1,2,3代表4个方向,这是当前方块的初始方向.
-    std::array<Cube, 4> arr;
-    arr[0].dir = 2;
-    arr[1].dir = 2;
-    arr[2].dir = 2;
-    arr[3].dir = 1;
+    //方块的index从0开始
+    CubeSystem start; //初始系统状态
+    Cube cube0;
+    cube0.dir = 1;
+    cube0.linkCube = {{1}};
+    start.allCube.push_back(cube0);
+    Cube cube1;
+    cube1.dir = 2;
+    cube1.linkCube = {{0, 2}};
+    start.allCube.push_back(cube1);
+    Cube cube2;
+    cube2.dir = 2;
+    cube2.linkCube = {{1, 3}};
+    start.allCube.push_back(cube2);
+    Cube cube3;
+    cube3.dir = 2;
+    cube3.linkCube = {{2}};
+    start.allCube.push_back(cube3);
 
-    CubeSystem start;
-    start.arr = arr;
+    int targetDir = 2; //成功的方向是2
 
     std::deque<CubeSystem> qSearch;
     qSearch.push_back(start);
@@ -80,15 +102,20 @@ int main()
     while (true) {
         CubeSystem curSearch = qSearch.front();
         qSearch.pop_front();
-        //尝试4个
-        for (size_t i = 0; i < 4; i++) {
+        //尝试敲击每一个方块
+        for (size_t i = 0; i < start.allCube.size(); i++) {
             CubeSystem newSystem = curSearch;
             newSystem.knock(i);
-            if (!newSystem.checkSuccess(2)) { //成功方向是面向2
+            if (!newSystem.checkSuccess(targetDir)) { //成功方向
                 qSearch.push_back(newSystem);
             }
             else {
-                printf("成功!");
+                std::cout << "成功!" << std::endl;
+                // 输出结果,方块的index从0开始
+                for (size_t resi = 0; resi < newSystem.vStep.size(); resi++) {
+                    std::cout << newSystem.vStep[resi] << " ";
+                }
+                return 0;
             }
         }
     }
